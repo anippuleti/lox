@@ -4,3 +4,13 @@ This is an interpreter for Lox programming language. It's an expressive multi-pa
 Currently it's still in active dovelopment.
 
 Steps to install.
+  git clone https://github.com/anippuleti/lox.git
+  cd lox
+  mkdir build
+  cd build
+  cmake -DCMAKE_BUILD_TPYE=Release ..
+  make -f Makefile -j8
+  
+To run sample program
+  cd lox
+  build/lox test_scripts/sample1.lox
