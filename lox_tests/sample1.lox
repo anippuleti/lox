@@ -1,0 +1,95 @@
+
+var   aaaa = (1234 + 5678) / 20;
+print "aaaa: ", aaaa;
+
+var   aaab = 42;
+print "aaab: ", aaab;
+
+var   aaac = aaaa * aaab;
+print "aaac: ", aaac;
+
+var   aaad = "My name is Abhinav";
+print "aaad: ", aaad;
+
+var   aaae = ", Spouse of Sruthi";
+print "R001: ", aaad + aaae;
+
+var   aaaf = true && true && true && true && true;
+print "aaaf: ", aaaf;
+print "R002: ", aaaf && false;
+print "R003: ", aaaf || false;
+
+var   aaag = aaaf;
+print "R005: ", aaag && aaaf;
+print "R006: ", aaag && (!aaaf);
+print "R007: ", aaag && !aaaf;
+print "R008: ", !aaag || aaaf;
+print "R009: ", !aaag || !aaaf;
+print "R010: ", "Result of var aaaa: " + aaaa + " is printed";
+
+var   aaah = ++aaab;
+print "aaah: ", aaah;
+var   aaai = aaah--;
+print "aaai: ", aaai;
+print "aaah: ", aaah;
+
+//Ch8.5 Pg 126 example
+var aaaj = "global a";
+var aaak = "global b";
+var aaal = "global c";
+{
+  var aaaj = "outer a";
+  var aaak = "outer b";
+  {
+    var aaaj = "inner a";
+    print "aaaj: ", aaaj;
+    print "aaak: ", aaak;
+    print "aaal: ", aaal;
+  }
+  print "aaaj: ", aaaj;
+  print "aaak: ", aaak;
+  print "aaal: ", aaal;
+}
+print "aaaj: ", aaaj;
+print "aaak: ", aaak;
+print "aaal: ", aaal;
+
+//Shift operations
+var   aaam = 1 << 5;
+print "aaam: ", aaam;
+var   aaan = aaam >> 5;
+print "R011: ", aaan << 5 == aaam, " ", aaan, " ", aaam;
+print "R012: ", (aaan << 5) == aaam, " ", aaan, " ", aaam;
+
+//Other assignment operators
+var aaao = 0;
+aaao |= aaah;
+print "R013: ",aaao, " ", aaah, " ", aaao == aaah;
+aaao += aaah;
+print "R014: ", aaao, " ", aaam;
+aaao -= 21;
+aaao ^= aaam << 1;
+print "aaao: ", aaao;
+
+var aaap = aaao * 16 + 256 / 16;
+print "aaap: ", aaap;
+print "R015: ", aaap % 16 == 0;
+var   aaaq;
+aaaq       = aaap;
+aaap      /= 32;
+var   aaar = aaaq;
+aaar      /= 0.5;
+print "aaap: ", aaap;
+print "aaar: ", aaar;
+//print aaar % 16; //as expected this line fails with error message
+var    aaas = aaap;
+aaas <<= 5;
+print "R016: ", aaas == aaaq, " ", aaas, " ", aaaq;
+var    aaat = -aaas;
+print "aaat: ", aaat;
+print "logical not aaat: ", !aaat;
+print "bitwise not aaat: ", ~aaat;
+//print "bitwise not aaar: ", ~aaar; //as expected this line fails with error message
+
+print "Mixin's " + aaas + " + " + aaaq, " = ", (aaas + aaaq);
+print 3 || 2;

@@ -8,7 +8,7 @@ Steps to install.
   2. cd lox
   3. mkdir build
   4. cd build
-  5. cmake -DCMAKE_BUILD_TPYE=Release ..
+  5. cmake -DCMAKE_BUILD_TYPE=Release ..
   6. make -f Makefile -j8
   
 To run sample program
