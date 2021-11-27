@@ -1,7 +1,6 @@
 #ifndef LOX_VARENV_H
 #define LOX_VARENV_H
 
-#include <stack>
 #include <vector>
 #include <string>
 #include <variant>

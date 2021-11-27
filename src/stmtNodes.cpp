@@ -119,38 +119,39 @@ lox::VarDecl::VarDecl(
 
 }
 
-bool lox::VarDecl::evaluate(
+lox::smt::evalRet_t lox::VarDecl::evaluate(
     VarEnv& env,
     ErrorHandler& errHdl)
 {
   auto var = m_identifier->evaluate(env, errHdl);
   if (!std::holds_alternative<exp::VarIdentifier>(var)) {
     smtnms::errExpectedVar(errHdl, m_range.cur_loc());
-    return false;
+    return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
   }
 
   //if initializer is not present, set it to Nil
   if (!m_initializer) {
     if (!env.push(std::get<exp::VarIdentifier>(
         var).sview, errHdl, m_range.cur_loc()))
-      return false;
-    return true;
+      return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
+    return smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}};
   }
 
   using namespace smtnms;
-  auto innrVist = [&env, &errHdl, var, this] (auto&& arg) -> bool {
+  auto innrVist = [&env, &errHdl, var, this] (auto&& arg) -> smt::evalRet_t {
     return std::visit(
-        [&env, &errHdl, var, this] (auto&& inArg) -> bool {
+        [&env, &errHdl, var, this] (auto&& inArg) -> smt::evalRet_t {
           using U = std::decay_t<decltype(inArg)>;
           if constexpr (std::is_same_v<U, std::monostate>) {
-            return false;
+            return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
           } else {
             return env.push(
                 std::get<exp::VarIdentifier>(var).sview,
                 inArg,
                 errHdl,
                 m_range.cur_loc()
-            );
+            ) ? smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}}
+              : smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
           }
         },
         std::as_const(env).get(arg.sview, errHdl, m_range.cur_loc())
@@ -158,13 +159,13 @@ bool lox::VarDecl::evaluate(
   };
 
   return std::visit(
-      [&env, &errHdl, var, this, innrVist] (auto&& arg) -> bool {
+      [&env, &errHdl, var, this, innrVist] (auto&& arg) -> smt::evalRet_t {
         using T = std::decay_t<decltype(arg)>;
         if constexpr (std::is_same_v<T, exp::ErrorReported>) {
-          return false;
+          return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
         } else if constexpr (std::is_same_v<T, exp::Assignment>) {
           errOnVarDecl(errHdl, m_range.cur_loc());
-          return false;
+          return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
         } else if constexpr (std::is_same_v<T, exp::VarIdentifier>) {
           return innrVist(arg);
         } else if constexpr (std::is_same_v<T, exp::StrLiteral>) {
@@ -173,29 +174,23 @@ bool lox::VarDecl::evaluate(
               arg.sview,
               errHdl,
               m_range.cur_loc()
-          );
+          ) ? smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}}
+            : smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
         } else {
           return env.push(
               std::get<exp::VarIdentifier>(var).sview,
               arg,
               errHdl,
               m_range.cur_loc()
-          );
+          ) ? smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}}
+            : smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
         }
       },
       m_initializer->evaluate(env, errHdl)
   );
 }
 
-void lox::VarDecl::toStr(std::string& strm) const
-{
-  strm += "var ";
-  m_identifier->toStr(strm);
-  strm += " = ";
-  m_initializer->toStr(strm);
-  strm += '\n';
-}
-
+lox::AstType lox::VarDecl::getType() const { return AstType::var; }
 lox::TokenRange lox::VarDecl::getTokenRange() const { return m_range; }
 
 lox::ExprStmt::ExprStmt(
@@ -208,23 +203,17 @@ lox::ExprStmt::ExprStmt(
 
 }
 
-bool lox::ExprStmt::evaluate(
+lox::smt::evalRet_t lox::ExprStmt::evaluate(
     VarEnv &env,
     ErrorHandler &errHdl)
 {
   auto res = m_expression->evaluate(env, errHdl);
   if (std::holds_alternative<exp::ErrorReported>(res))
-    return false;
-  return true;
+    return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
+  return smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}};
 }
 
-void lox::ExprStmt::toStr(std::string& strm) const
-{
-  strm += "Expr ( ";
-  m_expression->toStr(strm);
-  strm += ")\n";
-}
-
+lox::AstType lox::ExprStmt::getType() const { return AstType::exprsmt; }
 lox::TokenRange lox::ExprStmt::getTokenRange() const { return m_range; }
 
 lox::PrintDecl::PrintDecl(
@@ -237,7 +226,7 @@ lox::PrintDecl::PrintDecl(
 
 }
 
-bool lox::PrintDecl::evaluate(
+lox::smt::evalRet_t lox::PrintDecl::evaluate(
     VarEnv& env,
     ErrorHandler& errHdl)
 {
@@ -247,19 +236,11 @@ bool lox::PrintDecl::evaluate(
       smtnms::PrintElem(env, errHdl, m_range.cur_loc())
   );
   std::cout << std::endl;
-  return res.m_success;
+  return res.m_success ? smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}}
+                       : smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
 }
 
-void lox::PrintDecl::toStr(std::string& strm) const
-{
-  strm += "print ";
-  for (auto& elem : m_exprs) {
-    elem->toStr(strm);
-    strm += ", ";
-  }
-  strm += '\n';
-}
-
+lox::AstType lox::PrintDecl::getType() const { return AstType::print; }
 lox::TokenRange lox::PrintDecl::getTokenRange() const { return m_range; }
 
 lox::BlockDecl::BlockDecl(
@@ -272,28 +253,24 @@ lox::BlockDecl::BlockDecl(
 
 }
 
-bool lox::BlockDecl::evaluate(
+lox::smt::evalRet_t lox::BlockDecl::evaluate(
     VarEnv& env, ErrorHandler& errHdl)
 {
   env.allocBlk();
   for (auto& elem : m_stmts) {
-    if (!elem->evaluate(env, errHdl)){
-      env.deallocBlk();
-      return false;
+    auto res = elem->evaluate(env, errHdl);
+    if (std::holds_alternative<smt::SmtEval>(res)) {
+      if (std::get<smt::SmtEval>(res).flag == smt::Status_e::Failure) {
+        env.deallocBlk();
+        return res;
+      }
+    } else {
+      return smt::evalRet_t{smt::SmtEval{smt::Status_e::Failure}};
     }
   }
   env.deallocBlk();
-  return true;
+  return smt::evalRet_t{smt::SmtEval{smt::Status_e::Success}};
 }
 
-void lox::BlockDecl::toStr(std::string& strm) const
-{
-  strm += "{\n";
-  for (auto& elem : m_stmts) {
-    elem->toStr(strm);
-    strm += '\n';
-  }
-  strm += "}\n";
-}
-
+lox::AstType lox::BlockDecl::getType() const { return AstType::block; }
 lox::TokenRange lox::BlockDecl::getTokenRange() const { return m_range; }

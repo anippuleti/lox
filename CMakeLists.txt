@@ -25,7 +25,7 @@ add_executable(lox
         src/parser.h
         src/parser.cpp
         src/interpreter.h
-        src/interpreter.cpp)
+        src/interpreter.cpp src/astNode.h)
 
 target_compile_options(lox PRIVATE -ftemplate-backtrace-limit=0)
 

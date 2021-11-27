@@ -1329,15 +1329,7 @@ evalRet_t lox::Binary::evaluate(
   );
 }
 
-void lox::Binary::toStr(std::string& strm) const
-{
-  strm += "( ";
-  lox::toStr(strm, m_token);
-  m_lhs->toStr(strm);
-  m_rhs->toStr(strm);
-  strm += ") ";
-}
-
+lox::AstType lox::Binary::getType() const { return AstType::binary; }
 lox::TokenRange lox::Binary::getTokenRange() const { return m_range; }
 
 lox::Unary::Unary(
@@ -1409,15 +1401,9 @@ evalRet_t lox::Unary::evaluate(
   );
 }
 
-void lox::Unary::toStr(std::string& strm) const
-{
-  strm += "( ";
-  lox::toStr(strm, m_token);
-  m_rhs->toStr(strm);
-  strm += ") ";
-}
-
+lox::AstType lox::Unary::getType() const { return AstType::unary; }
 lox::TokenRange lox::Unary::getTokenRange() const { return m_range; }
+
 lox::Prefix::Prefix(
     Token_e token,
     std::unique_ptr<Expr> rhs,
@@ -1480,14 +1466,7 @@ evalRet_t lox::Prefix::evaluate(
   );
 }
 
-void lox::Prefix::toStr(std::string& strm) const
-{
-  strm += "( ";
-  lox::toStr(strm, m_token);
-  m_rhs->toStr(strm);
-  strm += ") ";
-}
-
+lox::AstType lox::Prefix::getType() const { return AstType::prefix; }
 lox::TokenRange lox::Prefix::getTokenRange() const { return m_range; }
 
 lox::Suffix::Suffix(
@@ -1556,14 +1535,7 @@ evalRet_t lox::Suffix::evaluate(
   );
 }
 
-void lox::Suffix::toStr(std::string& strm) const
-{
-  strm += "( ";
-  m_lhs->toStr(strm);
-  lox::toStr(strm, m_token);
-  strm += ") ";
-}
-
+lox::AstType lox::Suffix::getType() const { return AstType::suffix; }
 lox::TokenRange lox::Suffix::getTokenRange() const { return m_range; }
 
 lox::LRExpr::LRExpr(lox::TokenRange&& range):
@@ -1579,7 +1551,7 @@ evalRet_t lox::LRExpr::evaluate(
 {
   (void)env; (void) errHdl; //Statements only to silence unused variable error
   return std::visit(
-      [this](auto&& arg) -> evalRet_t {
+      [this] (auto&& arg) -> evalRet_t {
         using T = std::decay_t<decltype(arg)>;
         if constexpr (std::is_same_v<T, std::string>) {
           if ((*m_range.cur_loc())() == Token_e::identifier)
@@ -1594,19 +1566,28 @@ evalRet_t lox::LRExpr::evaluate(
   );
 }
 
-void lox::LRExpr::toStr(std::string& strm) const
+lox::AstType lox::LRExpr::getType() const
 {
-  std::visit(
-      [&strm](auto&& arg) {
+  return std::visit(
+      [this] (auto&& arg) {
         using T = std::decay_t<decltype(arg)>;
-        if constexpr (std::is_same_v<T, std::string>)
-          strm += arg;
-        else
-          strm += std::to_string(arg);
+        if constexpr (std::is_same_v<T, std::string>) {
+          if ((*m_range.cur_loc())() == Token_e::identifier)
+            return AstType::identifier;
+          else
+            return AstType::string;
+        } else if constexpr (std::is_same_v<T, bool>) {
+          return AstType::boolean;
+        } else if constexpr (std::is_same_v<T, llint>) {
+          return AstType::integer;
+        } else if constexpr (std::is_same_v<T, double>) {
+          return AstType::fractional;
+        } else {
+          static_assert(lox::traits::always_false_v<T>, "Must be exhaustive");
+        }
       },
       m_range.cur_loc()->m_value
   );
-  strm += ' ';
 }
 
 lox::TokenRange lox::LRExpr::getTokenRange() const { return m_range; }
@@ -1628,13 +1609,7 @@ evalRet_t lox::Grouping::evaluate(
   return m_expr->evaluate(env, errHdl);
 }
 
-void lox::Grouping::toStr(std::string& strm) const
-{
-  strm += "( ";
-  m_expr->toStr(strm);
-  strm += ") ";
-}
-
+lox::AstType lox::Grouping::getType() const { return AstType::grouping; }
 lox::TokenRange lox::Grouping::getTokenRange() const { return m_range; }
 
 lox::Assignment::Assignment(
@@ -1737,13 +1712,5 @@ evalRet_t lox::Assignment::evaluate(
   );
 }
 
-void lox::Assignment::toStr(std::string &strm) const
-{
-  strm += "( ";
-  m_lhs->toStr(strm);
-  lox::toStr(strm, m_token);
-  m_rhs->toStr(strm);
-  strm += ") ";
-}
-
+lox::AstType lox::Assignment::getType() const { return AstType::assignment; }
 lox::TokenRange lox::Assignment::getTokenRange() const { return m_range; }

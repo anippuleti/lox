@@ -3,6 +3,7 @@
 #include "stmtNodes.h"
 #include "exprNodes.h"
 #include "varEnv.h"
+#include "astNode.h"
 
 namespace iprnms {
 using Vwrap = lox::VecWrapper<std::unique_ptr<lox::Stmt>, int>;
@@ -17,8 +18,10 @@ bool eval_impl(
 {
   for (auto& elem : eval_ast) {
     auto res = elem->evaluate(var_env, err_hdl);
-    if (!res)
-      return true;
+    if (std::holds_alternative<lox::smt::SmtEval>(res)) {
+      if (std::get<lox::smt::SmtEval>(res).flag == lox::smt::Status_e::Failure)
+        return true;
+    }
   }
   return false;
 }

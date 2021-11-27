@@ -6,6 +6,7 @@
 #include <memory>
 #include "token.h"
 #include "vecWrapper.h"
+#include "astNode.h"
 
 namespace lox {
 class VarEnv;
@@ -25,9 +26,11 @@ class Stmt {
   Stmt(Stmt&& ) noexcept            = delete;
   Stmt& operator=(Stmt&& ) noexcept = delete;
 
-  [[nodiscard]] virtual bool evaluate(VarEnv& env, ErrorHandler& errHdl) = 0;
-                virtual void toStr(std::string& strm)        const = 0;
-  [[nodiscard]] virtual TokenRange getTokenRange()           const = 0;
+  [[nodiscard]] virtual smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) = 0;
+  [[nodiscard]] virtual AstType getType()          const = 0;
+  [[nodiscard]] virtual TokenRange getTokenRange() const = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -48,8 +51,10 @@ class VarDecl : public Stmt {
       std::unique_ptr<Expr> id,
       TokenRange&&          range);
 
-  [[nodiscard]] bool evaluate(VarEnv& env, ErrorHandler& errHdl) override;
-  void toStr(std::string& strm) const override;
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -63,8 +68,10 @@ class ExprStmt : public Stmt {
       TokenRange&&          range
   );
 
-  [[nodiscard]] bool evaluate(VarEnv& env, ErrorHandler& errHdl) override;
-  void toStr(std::string& strm) const override;
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -77,8 +84,10 @@ class PrintDecl : public Stmt {
       std::vector<std::unique_ptr<Expr>>&& exprs,
       TokenRange&&                         range);
 
-  [[nodiscard]] bool evaluate(VarEnv& env, ErrorHandler& errHdl) override;
-  void toStr(std::string& strm) const override;
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -91,8 +100,10 @@ class BlockDecl : public Stmt {
       std::vector<std::unique_ptr<Stmt>>&& stmts,
       TokenRange&&                         range);
 
-  [[nodiscard]] bool evaluate(VarEnv& env, ErrorHandler& errHdl) override;
-  void toStr(std::string& strm) const override;
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 

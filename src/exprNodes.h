@@ -9,6 +9,7 @@
 #include <cmath>
 #include "token.h"
 #include "vecWrapper.h"
+#include "astNode.h"
 
 namespace lox {
 
@@ -16,26 +17,6 @@ class VarEnv;
 class ErrorHandler;
 
 namespace exp {
-
-using LongInt_t   = long long;
-//////////////////////////////////////////////////////////////////////////////
-///AST Expr Node class, evaluate() method return type
-//////////////////////////////////////////////////////////////////////////////
-struct ErrorReported { };
-struct Assignment    { };
-struct VarIdentifier { std::string_view sview; };
-struct StrLiteral    { std::string_view sview; };
-
-using evalRet_t = std::variant<
-    ErrorReported,    ///Stored on Error Detection. Type used to unwind stack
-    Assignment,       ///Stored on Assignment evaluation.
-    bool,             ///bool literals are stored.
-    long long,        ///Integer literals are stored
-    double,           ///Fractional literals are stored
-    std::string,      ///rvalue string literals Ex: print "Hello + "World";
-    VarIdentifier,    ///Variable names. Value of variable stored in VarEnv
-    StrLiteral        ///lvalue string literals Ex: var s = "Hello World";
->;
 
 struct DivOpRes {
   using D = double;
@@ -87,7 +68,7 @@ class Expr {
   [[nodiscard]] virtual  exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                              = 0;
-  virtual void toStr(std::string& strm)            const = 0;
+  [[nodiscard]] virtual AstType getType()          const = 0;
   [[nodiscard]] virtual TokenRange getTokenRange() const = 0;
 };
 
@@ -112,7 +93,7 @@ class Binary : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                      override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -130,7 +111,7 @@ class Unary : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& err)                         override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -149,7 +130,7 @@ class Prefix : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                      override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -168,7 +149,7 @@ class Suffix : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                      override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -182,7 +163,7 @@ class LRExpr : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                      override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -199,7 +180,7 @@ class Grouping : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                      override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
@@ -220,7 +201,7 @@ class Assignment : public Expr {
   [[nodiscard]] exp::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl)                      override;
-  void toStr(std::string& strm)            const override;
+  [[nodiscard]] AstType getType()          const override;
   [[nodiscard]] TokenRange getTokenRange() const override;
 };
 
