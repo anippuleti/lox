@@ -13,4 +13,5 @@ Steps to install.
   
 To run sample program
   1. cd lox
-  2. build/lox test_scripts/sample1.lox
+  2. cd build
+  3. lox ../test_scripts/sample1.lox
