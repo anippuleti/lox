@@ -91,5 +91,5 @@ print "logical not aaat: ", !aaat;
 print "bitwise not aaat: ", ~aaat;
 //print "bitwise not aaar: ", ~aaar; //as expected this line fails with error message
 
-print "Mixin's " + aaas + " + " + aaaq, " = ", (aaas + aaaq);
+print "Mixin's " + aaas + " + " + aaaq + " = " + (aaas + aaaq);
 print 3 || 2;

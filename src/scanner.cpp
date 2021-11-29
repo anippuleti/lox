@@ -6,7 +6,6 @@ using Rsvd_identifier = const std::unordered_map<std::string, lox::Token_e>;
 Rsvd_identifier lox::Scanner::m_reservedk = {
     {"if", lox::Token_e::ifK},
     {"else", lox::Token_e::elseK},
-    {"elseif", lox::Token_e::elseIfK},
     {"var", lox::Token_e::varK},
     {"class", lox::Token_e::classK},
     {"super", lox::Token_e::superK},
@@ -387,7 +386,6 @@ void lox::toStr(std::string& strm, Token_e token)
     case Token_e::fractional: strm += "real ";       break;
     case Token_e::ifK:        strm += "if ";         break;
     case Token_e::elseK:      strm += "else ";       break;
-    case Token_e::elseIfK:    strm += "elif ";       break;
     case Token_e::varK:       strm += "var ";        break;
     case Token_e::funK:       strm += "fun ";        break;
     case Token_e::classK:     strm += "class ";      break;

@@ -1,0 +1,78 @@
+
+
+var a = 2 + 3;
+
+if (a == 5) { 
+  print "If test successfull";
+} else {
+  print "If test failed";
+}
+
+var bool_a = true;
+var bool_b = true;
+
+if (bool_a) {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+} else {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+}
+
+bool_a = true;
+bool_b = false;
+
+if (bool_a) {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+} else {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+}
+
+
+bool_a = false;
+bool_b = true;
+
+if (bool_a) {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+} else {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " " + (bool_a & bool_b);
+  }
+}
+
+bool_a = false;
+bool_b = false;
+
+if (bool_a) {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+} else {
+  if (bool_b) {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  } else {
+    print "bool_a " + bool_a + " bool_b " + bool_b + " res " + (bool_a & bool_b);
+  }
+}

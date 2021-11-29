@@ -64,6 +64,9 @@ class Parser {
   [[nodiscard]] psr::Node_t declaration(TokenRange& token_r);
   [[nodiscard]] psr::Node_t varDeclaration(TokenRange& token_r);
   [[nodiscard]] psr::Node_t statement(TokenRange& token_r);
+  [[nodiscard]] psr::Node_t ifStatement(TokenRange& token_r);
+  [[nodiscard]] psr::Node_t elseStatement(TokenRange& token_r);
+  [[nodiscard]] psr::Node_t ifElseIfStatement(TokenRange& token_r);
   [[nodiscard]] psr::Node_t printStatement(TokenRange& token_r);
   [[nodiscard]] psr::Node_t blockDeclaration(TokenRange& token_r);
   [[nodiscard]] psr::Node_t expressionStatement(TokenRange& token_r) const;
@@ -83,6 +86,7 @@ class Parser {
   [[nodiscard]] psr::Node_t prefix(TokenRange& token_r)              const;
   [[nodiscard]] psr::Node_t suffix(TokenRange& token_r)              const;
   [[nodiscard]] psr::Node_t primary(TokenRange& token_r)             const;
+  [[nodiscard]] psr::Node_t grouping(TokenRange& token_r)            const;
 };
 
 } //end of namespace lox

@@ -24,7 +24,7 @@ enum class Token_e {
 ///Literals
   identifier, string, integer, fractional,
 ///Reserved keywords
-    ifK, elseK, elseIfK, varK, classK, superK, thisK, funK, returnK,
+    ifK, elseK, varK, classK, superK, thisK, funK, returnK,
     falseK, trueK, nilK, printK, forK, whileK
 };
 

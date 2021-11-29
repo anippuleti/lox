@@ -29,8 +29,8 @@ class Stmt {
   [[nodiscard]] virtual smt::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl) = 0;
-  [[nodiscard]] virtual AstType getType()          const = 0;
-  [[nodiscard]] virtual TokenRange getTokenRange() const = 0;
+  [[nodiscard]] virtual AstType getType()          const noexcept = 0;
+  [[nodiscard]] virtual TokenRange getTokenRange() const noexcept = 0;
 };
 
 //////////////////////////////////////////////////////////////////////////////
@@ -54,8 +54,8 @@ class VarDecl : public Stmt {
   [[nodiscard]] smt::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl) override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
 class ExprStmt : public Stmt {
@@ -71,8 +71,8 @@ class ExprStmt : public Stmt {
   [[nodiscard]] smt::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl) override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
 class PrintDecl : public Stmt {
@@ -87,8 +87,8 @@ class PrintDecl : public Stmt {
   [[nodiscard]] smt::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl) override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
 class BlockDecl : public Stmt {
@@ -103,10 +103,84 @@ class BlockDecl : public Stmt {
   [[nodiscard]] smt::evalRet_t evaluate(
       VarEnv& env,
       ErrorHandler& errHdl) override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
-}
+class IfStmt : public Stmt {
+  std::unique_ptr<Expr> m_condition;
+  std::unique_ptr<Stmt> m_block;
+  TokenRange            m_range;
+
+ public:
+  IfStmt(
+      std::unique_ptr<Expr> cond,
+      std::unique_ptr<Stmt> blk,
+      TokenRange&&          range);
+
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class ElseStmt : public Stmt {
+  std::unique_ptr<Stmt> m_block;
+  TokenRange            m_range;
+
+ public:
+  ElseStmt(
+      std::unique_ptr<Stmt> blk,
+      TokenRange&&          range);
+
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class IfElseStmt : public Stmt {
+  std::unique_ptr<Stmt>   m_if_clause;
+  std::unique_ptr<Stmt> m_else_clause;
+  TokenRange                m_range;
+
+ public:
+  IfElseStmt(
+      std::unique_ptr<Stmt>   ifcls,
+      std::unique_ptr<Stmt> elsecls,
+      TokenRange&&              m_range);
+
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class IfElseIfStmt : public Stmt {
+  std::vector<std::unique_ptr<Stmt>> m_if_cluaseq;
+  std::unique_ptr<Stmt>            m_else_clause;
+  TokenRange                           m_range;
+
+ public:
+  IfElseIfStmt(
+      std::vector<std::unique_ptr<Stmt>>&& ifq,
+      std::unique_ptr<Stmt>            else_clause,
+      TokenRange&&                     range);
+
+  IfElseIfStmt(
+      std::vector<std::unique_ptr<Stmt>>&& ifq,
+      TokenRange&&                     range);
+
+  [[nodiscard]] smt::evalRet_t evaluate(
+      VarEnv& env,
+      ErrorHandler& errHdl) override;
+  [[nodiscard]] AstType getType()          const noexcept override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+}//end of namespace lox
 
 #endif //LOX_STMTNODES_H

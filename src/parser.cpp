@@ -175,6 +175,28 @@ psr::Node_t invokeBinOpLoops(
   return lhs;
 }
 
+
+template<typename Function, typename Object, typename Condition>
+[[nodiscard]] lox::smt::Status_e fillup_elseif_clauses(
+    Function&& func,
+    Object&&   obj,
+    std::vector<lox::psr::Stmt_ptr>& if_clauses,
+    Condition&& predicate,
+    lox::TokenRange& token_r)
+{
+  do {
+    ++(++token_r);
+    auto eif_clause = std::invoke(func, obj, token_r);
+    if (!psrnms::isStmtState(eif_clause))
+      return lox::smt::Status_e::Failure;
+
+    if_clauses.push_back(
+        getVarType<lox::psr::Node_e::stmt_st>(std::move(eif_clause))
+    );
+  } while (predicate(token_r));
+  return lox::smt::Status_e::Success;
+}
+
 void errOnVarDecl(
     lox::ErrorHandler&  err,
     lox::Token_itr loc)
@@ -182,32 +204,6 @@ void errOnVarDecl(
   err.recordErrMsg(
       [] (auto& msg) {
         msg += "expected variable name before ";
-      },
-      loc
-  );
-}
-
-void errMissingEq(
-    lox::ErrorHandler&  err,
-    lox::Token_itr      loc)
-{
-  err.recordErrMsg(
-      [loc] (auto& msg) {
-        msg += "expected assignment operator '=' before ";
-        lox::toStr(msg, (*loc)());
-      },
-      loc
-  );
-}
-
-void errMissingSemicolan(
-    lox::ErrorHandler& err,
-    lox::Token_itr     loc)
-{
-  err.recordErrMsg(
-      [loc] (auto& msg) {
-        msg += "expected ';' after ";
-        lox::TokenValToStr(msg, loc);
       },
       loc
   );
@@ -228,26 +224,34 @@ void errUnexpectedToken(
   );
 }
 
-void errMissingRightPran(
+void errMissingAfterToken(
     lox::ErrorHandler& err,
+    char token,
     lox::Token_itr     loc)
 {
   err.recordErrMsg(
-      [loc] (auto& msg) {
-        msg += "missing ')' after ";
+      [loc, token] (auto& msg) {
+        msg += "missing ";
+        msg += token;
+        msg += " after ";
         lox::toStr(msg, (*loc)());
       },
       loc
   );
 }
 
-void errMissingRightBrace(
+void errMissingAfterToken(
     lox::ErrorHandler& err,
+    std::pair<char, char> tokens,
     lox::Token_itr     loc)
 {
   err.recordErrMsg(
-      [loc] (auto& msg) {
-        msg += "missing ')' after ";
+      [loc, tokens] (auto& msg) {
+        msg += "either missing ";
+        msg += tokens.first;
+        msg += " or ";
+        msg += tokens.second;
+        msg += " after ";
         lox::toStr(msg, (*loc)());
       },
       loc
@@ -317,7 +321,7 @@ lox::psr::Node_t lox::Parser::varDeclaration(
   if (psrnms::match({lox::Token_e::eq}, token_r)) {
     auto init = expression(token_r);
     if (!psrnms::match({Token_e::semicolan}, token_r)) {
-      psrnms::errMissingSemicolan(m_err_hdl, token_r.prev());
+      psrnms::errMissingAfterToken(m_err_hdl, ';', token_r.prev());
       return psr::Node_t{};
     }
     if (psrnms::isExprState(init))
@@ -337,19 +341,134 @@ lox::psr::Node_t lox::Parser::varDeclaration(
         )
     };
   }
-  psrnms::errMissingEq(m_err_hdl, token_r.cur_loc());
-  psrnms::errMissingSemicolan(m_err_hdl, token_r.prev());
+  psrnms::errMissingAfterToken(m_err_hdl, {'=', ';'}, token_r.prev());
   return psr::Node_t{};
 }
 
 lox::psr::Node_t lox::Parser::statement(
     TokenRange& token_r)
 {
+  if (psrnms::match( {Token_e::ifK}, token_r))
+    return ifElseIfStatement(token_r);
   if (psrnms::match({Token_e::printK}, token_r))
     return printStatement(token_r);
   else if (psrnms::match({Token_e::leftBrace}, token_r))
     return blockDeclaration(token_r);
   return expressionStatement(token_r);
+}
+
+lox::psr::Node_t lox::Parser::ifStatement(TokenRange& token_r)
+{
+  auto stitr = token_r.prev();
+  if (psrnms::match({Token_e::leftParan}, token_r)) {
+    auto if_cond = grouping(token_r);
+    if (psrnms::isExprState(if_cond)) {
+      if (psrnms::match({Token_e::leftBrace}, token_r)) {
+        auto blk_smt = blockDeclaration(token_r);
+        if (psrnms::isStmtState(blk_smt))
+          return psr::Node_t{
+              m_allocator.alloc<IfStmt>(
+                  psrnms::getVarType<psr::Node_e::expr_st>(std::move(if_cond)),
+                  psrnms::getVarType<psr::Node_e::stmt_st>(std::move(blk_smt)),
+                  TokenRange(stitr, token_r.cur_loc())
+              )
+          };
+        else
+          return psr::Node_t{};
+      } else {
+        psrnms::errMissingAfterToken(m_err_hdl, '{', token_r.prev());
+        return psr::Node_t{};
+      }
+    } else {
+      return psr::Node_t{};
+    }
+  }
+  psrnms::errMissingAfterToken(m_err_hdl, '(', token_r.prev());
+  return psr::Node_t{};
+}
+
+lox::psr::Node_t lox::Parser::elseStatement(TokenRange& token_r) {
+  auto stitr = token_r.prev();
+  if (psrnms::match({Token_e::leftBrace}, token_r)) {
+    auto blk_smt = blockDeclaration(token_r);
+    if (psrnms::isStmtState(blk_smt))
+      return psr::Node_t{
+          m_allocator.alloc<ElseStmt>(
+              psrnms::getVarType<psr::Node_e::stmt_st>(std::move(blk_smt)),
+              TokenRange(stitr, token_r.cur_loc())
+              )
+      };
+    else
+      return psr::Node_t{};
+  }
+  psrnms::errMissingAfterToken(m_err_hdl, '{', token_r.prev());
+  return psr::Node_t{};
+}
+
+lox::psr::Node_t lox::Parser::ifElseIfStatement(TokenRange& token_r)
+{
+  auto stitr = token_r.prev();
+  auto if_clause = ifStatement(token_r);
+  if (!psrnms::isStmtState(if_clause))
+    return psr::Node_t{};
+
+  ///Intentionally passing Token range by value to avoid consuming 2 tokens
+  ///at once. If this predicated returns true, then fillup_elseif_clauses()
+  ///will explicitly consume bo the the tokens.
+  auto isElseIfClause = [] (auto token_loc) {
+    return psrnms::match({Token_e::elseK}, token_loc) &&
+           psrnms::match({Token_e::ifK}, token_loc);
+  };
+  auto isElseClause = [] (auto& token_loc) {
+    return psrnms::match({Token_e::elseK}, token_loc);
+  };
+
+  if (isElseIfClause(token_r)) {
+    std::vector<psr::Stmt_ptr> if_clauses;
+    if_clauses.push_back(
+        psrnms::getVarType<psr::Node_e::stmt_st>(std::move(if_clause))
+    );
+    auto elif_res = psrnms::fillup_elseif_clauses(
+        &Parser::ifStatement,
+        this,
+        if_clauses,
+        isElseIfClause,
+        token_r);
+    if (elif_res == smt::Status_e::Failure)
+      return psr::Node_t{};
+
+    if (isElseClause(token_r)) {
+      auto else_clause = elseStatement(token_r);
+      if (!psrnms::isStmtState(else_clause))
+        return psr::Node_t{};
+      return psr::Node_t{
+          m_allocator.alloc<IfElseIfStmt>(
+                std::move(if_clauses),
+                psrnms::getVarType<psr::Node_e::stmt_st>(std::move(else_clause)),
+                TokenRange(stitr, token_r.cur_loc())
+            )
+      };
+    } else {
+      return psr::Node_t{
+          m_allocator.alloc<IfElseIfStmt>(
+              std::move(if_clauses),
+              TokenRange(stitr, token_r.cur_loc())
+          )
+      };
+    }
+  } else if (isElseClause(token_r)) {
+    auto else_clause = elseStatement(token_r);
+    if (!psrnms::isStmtState(else_clause))
+      return psr::Node_t{};
+    return psr::Node_t{
+        m_allocator.alloc<IfElseStmt>(
+            psrnms::getVarType<psr::Node_e::stmt_st>(std::move(if_clause)),
+            psrnms::getVarType<psr::Node_e::stmt_st>(std::move(else_clause)),
+            TokenRange(stitr, token_r.cur_loc())
+        )
+    };
+  }
+  return if_clause;
 }
 
 lox::psr::Node_t lox::Parser::printStatement(
@@ -380,7 +499,7 @@ lox::psr::Node_t lox::Parser::printStatement(
         )
     };
   }
-  psrnms::errMissingSemicolan(m_err_hdl, token_r.prev());
+  psrnms::errMissingAfterToken(m_err_hdl, ';', token_r.prev());
   return psr::Node_t{};
 }
 
@@ -401,13 +520,13 @@ lox::psr::Node_t lox::Parser::blockDeclaration(
           "a statement or variable declaration but observed ",
           token_r.cur_loc());
       ///excluding rest of the statements in the block
-      synchronize(token_r, Token_e::rightParan);
+      synchronize(token_r, Token_e::rightBrace);
       return psr::Node_t{};
     }
   } while (!psrnms::match({Token_e::rightBrace}, token_r));
 
-  if (token_r.isEnd()) {
-    psrnms::errMissingRightBrace(m_err_hdl, token_r.prev());
+  if (token_r.isEnd() && token_r.prev()->m_type != Token_e::rightBrace) {
+    psrnms::errMissingAfterToken(m_err_hdl, '}', token_r.prev());
     return psr::Node_t{};
   }
 
@@ -426,7 +545,7 @@ lox::psr::Node_t lox::Parser::expressionStatement(
   auto res = expression(token_r);
   if (psrnms::isExprState(res)) {
     if (!psrnms::match({Token_e::semicolan}, token_r)) {
-      psrnms::errMissingSemicolan(m_err_hdl, token_r.prev());
+      psrnms::errMissingAfterToken(m_err_hdl, ';', token_r.prev());
       return psr::Node_t{};
     }
     return psr::Node_t{
@@ -672,28 +791,33 @@ lox::psr::Node_t lox::Parser::primary(
       Token_e::trueK, Token_e::falseK, Token_e::integer,
       Token_e::fractional, Token_e::string, Token_e::identifier
   };
-  if (psrnms::match(tknq, token_r)) {
+  if (psrnms::match(tknq, token_r))
     return psr::Node_t{
         m_allocator.alloc<LRExpr>(
             TokenRange(token_r.prev(), token_r.cur_loc())
         )
     };
-  } else if (psrnms::match({Token_e::leftParan}, token_r)) {
-    auto stitr = token_r.prev();
-    auto expr  = expression(token_r);
-    if (!psrnms::match({Token_e::rightParan}, token_r)) {
-      psrnms::errMissingRightPran(m_err_hdl, token_r.cur_loc());
-      return psr::Node_t{};
-    }
+  else if (psrnms::match({Token_e::leftParan}, token_r))
+    return grouping(token_r);
 
-    if (psrnms::isExprState(expr))
-      return psr::Node_t{
-          m_allocator.alloc<Grouping>(
-              psrnms::getVarType<psr::Node_e::expr_st>(std::move(expr)),
-                  TokenRange(stitr, token_r.cur_loc())
-          )
-      };
+  return psr::Node_t{};
+}
+
+lox::psr::Node_t lox::Parser::grouping(TokenRange& token_r) const
+{
+  auto stitr = token_r.prev();
+  auto expr  = expression(token_r);
+  if (!psrnms::match({Token_e::rightParan}, token_r)) {
+    psrnms::errMissingAfterToken(m_err_hdl, ')', token_r.cur_loc());
+    return psr::Node_t{};
   }
 
+  if (psrnms::isExprState(expr))
+    return psr::Node_t{
+        m_allocator.alloc<Grouping>(
+            psrnms::getVarType<psr::Node_e::expr_st>(std::move(expr)),
+            TokenRange(stitr, token_r.cur_loc())
+        )
+    };
   return psr::Node_t{};
 }

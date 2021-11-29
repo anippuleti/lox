@@ -4,8 +4,9 @@
 namespace lox {
 
 enum class AstType {
-  binary, unary, prefix, suffix, boolean, integer, fractional,
-  string, identifier, grouping, assignment, var, exprsmt, print, block
+  binary, unary, prefix, suffix, boolean, integer, fractional, string,
+  identifier, grouping, assignment, var, exprsmt, print, block, ifsmt,
+  elsesmt, ifelsesmt, ifelseifsmt
 };
 
 namespace exp {
@@ -31,6 +32,7 @@ using evalRet_t = std::variant<
 }///end of namespace exp
 
 namespace smt {
+
 enum class Status_e {
   Success, Failure
 };
