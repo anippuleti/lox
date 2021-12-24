@@ -15,12 +15,14 @@ namespace lox {
 
 class VarEnv;
 class ErrorHandler;
+class Expr;
+using Expr_t = std::unique_ptr<Expr>;
 
 namespace exp {
 
 struct DivOpRes {
   using D = double;
-  using L = LongInt_t;
+  using L = llint;
   double decimal;
   double fractional;
   const bool isFloatingOp;
@@ -54,155 +56,127 @@ struct DivOpRes {
 }/// end of namespace exp
 
 //////////////////////////////////////////////////////////////////////////////
-///Abstract AST Node Expr classes
+///Expression Types classes
+///Expr is the abstract base class for all expressions with below interface.
+///Expression type concept must provide below methods.
+///
+///  ExprRet_t   evaluate(VarEnv& , ErrorHandler& )
+///  TokenRange  getTokenRange() const noexcept
+///
 //////////////////////////////////////////////////////////////////////////////
+
 class Expr {
  public:
-  Expr();
-  virtual ~Expr() noexcept;
-
-  Expr(Expr const&)                = delete;
-  Expr& operator=(Expr const& )    = delete;
-  Expr(Expr&& ) noexcept           = delete;
-
-  [[nodiscard]] virtual  exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                              = 0;
-  [[nodiscard]] virtual AstType getType()          const = 0;
-  [[nodiscard]] virtual TokenRange getTokenRange() const = 0;
-};
-
-//////////////////////////////////////////////////////////////////////////////
-///Concrete AST Node Expr classes
-//////////////////////////////////////////////////////////////////////////////
-
-class Binary : public Expr {
- private:
-  std::unique_ptr<Expr> m_lhs;
-  std::unique_ptr<Expr> m_rhs;
-  lox::TokenRange       m_range;
-  Token_e m_token;
-
- public:
-  Binary(
-      std::unique_ptr<Expr> left,
-      Token_e               token,
-      std::unique_ptr<Expr> right,
-      TokenRange&&          range);
-
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                      override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
-};
-
-class Unary : public Expr {
-  std::unique_ptr<Expr> m_rhs;
-  lox::TokenRange       m_range;
-  Token_e m_token;
-
- public:
-  Unary(
-      Token_e token,
-      std::unique_ptr<Expr> rhs,
-      TokenRange&&          range);
-
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& err)                         override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
-};
-
-class Prefix : public Expr {
- private:
-  std::unique_ptr<Expr> m_rhs;
-  lox::TokenRange       m_range;
-  Token_e m_token;
-
- public:
-  Prefix(
-      Token_e token,
-      std::unique_ptr<Expr> rhs,
-      TokenRange&&          range);
-
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                      override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
-};
-
-class Suffix : public Expr {
- private:
-  std::unique_ptr<Expr> m_lhs;
-  lox::TokenRange       m_range;
-  Token_e               m_token;
-
- public:
-  Suffix(
-      std::unique_ptr<Expr> lhs,
-      Token_e token,
-      TokenRange&&          range);
-
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                      override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] virtual ExprRet_t  evaluate(VarEnv&, ErrorHandler& ) = 0;
+  [[nodiscard]] virtual TokenRange getTokenRange() const noexcept    = 0;
 };
 
 class LRExpr : public Expr {
  private:
-  lox::TokenRange       m_range;
+  TokenRange m_range;
 
  public:
   explicit LRExpr(TokenRange&& range);
 
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                      override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& errHdl) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class Prefix : public Expr {
+ private:
+  Expr_t     m_rhs;
+  TokenRange m_range;
+  Token_e    m_token;
+
+ public:
+  Prefix(
+      Token_e      token,
+      Expr_t       rhs,
+      TokenRange&& range);
+
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& errHdl) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class Suffix : public Expr {
+ private:
+  Expr_t     m_lhs;
+  TokenRange m_range;
+  Token_e    m_token;
+
+ public:
+  Suffix(
+      Expr_t       lhs,
+      Token_e      token,
+      TokenRange&& range);
+
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& errHdl) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class Unary : public Expr {
+  Expr_t     m_rhs;
+  TokenRange m_range;
+  Token_e    m_token;
+
+ public:
+  Unary(
+      Token_e      token,
+      Expr_t       rhs,
+      TokenRange&& range);
+
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& err) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
+};
+
+class Binary : public Expr {
+ private:
+  Expr_t     m_lhs;
+  Expr_t     m_rhs;
+  TokenRange m_range;
+  Token_e    m_token;
+
+ public:
+  Binary(
+      Expr_t       left,
+      Token_e      token,
+      Expr_t       right,
+      TokenRange&& range);
+
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& errHdl) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
 class Grouping : public Expr {
  private:
-  std::unique_ptr<Expr> m_expr;
-  lox::TokenRange       m_range;
+  Expr_t     m_expr;
+  TokenRange m_range;
 
  public:
   Grouping(
-      std::unique_ptr<Expr> expr,
-      TokenRange&&          range);
+      Expr_t       expr,
+      TokenRange&& range);
 
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                      override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& errHdl) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
-class Assignment : public Expr {
- private:
-  std::unique_ptr<Expr> m_lhs;
-  std::unique_ptr<Expr> m_rhs;
-  TokenRange            m_range;
-  Token_e               m_token;
+class AssignExpr : public Expr {
+ public:
+  Expr_t     m_lhs;
+  Expr_t     m_rhs;
+  TokenRange m_range;
+  Token_e    m_token;
 
  public:
-  Assignment(
-      std::unique_ptr<Expr> lhs,
-      Token_e               token,
-      std::unique_ptr<Expr> rhs,
-      TokenRange&&          range);
+  AssignExpr(
+      Expr_t       assign_lhs,
+      Token_e      token,
+      Expr_t       assign_rhs,
+      TokenRange&& range);
 
-  [[nodiscard]] exp::evalRet_t evaluate(
-      VarEnv& env,
-      ErrorHandler& errHdl)                      override;
-  [[nodiscard]] AstType getType()          const override;
-  [[nodiscard]] TokenRange getTokenRange() const override;
+  [[nodiscard]] ExprRet_t evaluate(VarEnv& env, ErrorHandler& errHdl) override;
+  [[nodiscard]] TokenRange getTokenRange() const noexcept override;
 };
 
 }//end of namespace lox

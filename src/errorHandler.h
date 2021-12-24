@@ -55,6 +55,22 @@ void ErrorHandler::recordErrMsg(InvokeCB&& cb, Titr tokenLoc)
   cb(loc);
 }
 
+struct ErrorWrapper {
+  std::reference_wrapper<ErrorHandler> m_err;
+  lox::Token_itr m_loc;
+
+  inline explicit ErrorWrapper(ErrorHandler& err, Token_itr loc);
+  template<typename InvokeCB>
+  void recordErrMsg(InvokeCB&& cb);
+};
+
+ErrorWrapper::ErrorWrapper(ErrorHandler& err, Token_itr loc): m_err{err}, m_loc{loc} { }
+template<typename InvokeCB>
+void ErrorWrapper::recordErrMsg(InvokeCB&& cb)
+{
+  m_err.get().recordErrMsg(std::forward<InvokeCB>(cb));
+}
+
 } //end of namespace
 
 #endif //LOX_ERRORHANDLER_H

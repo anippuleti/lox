@@ -6,16 +6,14 @@
 namespace detail {
 
 void errReDeclVar(
-    lox::ErrorHandler&  errHdl,
-    std::string_view    varName,
-    lox::var::Token_itr loc)
+    lox::ErrorWrapper   err_hdl,
+    std::string_view    varName)
 {
-  errHdl.recordErrMsg(
+  err_hdl.recordErrMsg(
       [varName](auto& msg) {
         msg += "redeclaration of ";
         msg += varName;
-      },
-      loc
+      }
   );
 }
 } //end of namespace
@@ -67,7 +65,7 @@ bool env::Node::put(std::string_view sv, std::string&& val) {
   return false;
 }
 
-bool env::Node::put(std::string_view sv, var::NilState&& val) {
+bool env::Node::put(std::string_view sv, NilValue&& val) {
   if (auto itr = find(sv); itr == end()) {
     m_var.emplace_back(sv, val);
     return true;
@@ -124,35 +122,32 @@ bool env::exists(std::string_view id) const
 }
 
 lox::var::Var_t& env::get(
-    std::string_view id,
-    lox::ErrorHandler&  errHdl,
-    lox::var::Token_itr loc)
+    std::string_view  id,
+    lox::ErrorWrapper err_hdl)
 {
   if (auto itr = find(id); itr != m_env.back().end()) {
     return itr->second;
   }
-  return errUnDeclVar(errHdl, loc, id);
+  return errUnDeclVar(err_hdl, id);
 }
 
 lox::var::Var_t const& env::get(
-    std::string_view id,
-    lox::ErrorHandler&  errHdl,
-    lox::var::Token_itr loc) const
+    std::string_view    id,
+    lox::ErrorWrapper   err_hdl) const
 {
   if (auto itr = find(id); itr != m_env.back().cend()) {
     return itr->second;
   }
-  return errUnDeclVar(errHdl, loc, id);
+  return errUnDeclVar(err_hdl, id);
 }
 
 bool env::push(
     std::string_view id,
     bool val,
-    lox::ErrorHandler&  errHdl,
-    var::Token_itr loc)
+    lox::ErrorWrapper err_hdl)
 {
   if (!push_impl(id, val)) {
-    detail::errReDeclVar(errHdl, id, loc);
+    detail::errReDeclVar(err_hdl, id);
     return false;
   }
   return true;
@@ -161,24 +156,34 @@ bool env::push(
 bool env::push(
     std::string_view id,
     Lint_t val,
-    lox::ErrorHandler& errHdl,
-    var::Token_itr     loc)
+    lox::ErrorWrapper  err_hdl)
 {
   if (!push_impl(id, val)) {
-    detail::errReDeclVar(errHdl, id, loc);
+    detail::errReDeclVar(err_hdl, id);
     return false;
   }
   return true;
 }
 
 bool env::push(
-    std::string_view id,
+    std::string_view  id,
     double val,
-    lox::ErrorHandler& errHdl,
-    var::Token_itr     loc)
+    lox::ErrorWrapper err_hdl)
 {
   if (!push_impl(id, val)) {
-    detail::errReDeclVar(errHdl, id, loc);
+    detail::errReDeclVar(err_hdl, id);
+    return false;
+  }
+  return true;
+}
+
+bool env::push(
+    std::string_view  id,
+    std::string_view  val,
+    lox::ErrorWrapper err_hdl)
+{
+  if (!push_impl(id, val)) {
+    detail::errReDeclVar(err_hdl, id);
     return false;
   }
   return true;
@@ -186,12 +191,11 @@ bool env::push(
 
 bool env::push(
     std::string_view id,
-    std::string_view val,
-    lox::ErrorHandler& errHdl,
-    var::Token_itr     loc)
+    std::string&& val,
+    lox::ErrorWrapper err_hdl)
 {
   if (!push_impl(id, val)) {
-    detail::errReDeclVar(errHdl, id, loc);
+    detail::errReDeclVar(err_hdl, id);
     return false;
   }
   return true;
@@ -199,66 +203,47 @@ bool env::push(
 
 bool env::push(
     std::string_view id,
-    std::string &&val,
-    lox::ErrorHandler& errHdl,
-    var::Token_itr     loc)
+    NilValue  nil __attribute__((unused)),
+    ErrorWrapper  err_hdl)
 {
-  if (!push_impl(id, val)) {
-    detail::errReDeclVar(errHdl, id, loc);
-    return false;
-  }
-  return true;
+  return push(id, err_hdl);
 }
 
 bool env::push(
     std::string_view id,
-    var::NilState  nil __attribute__((unused)),
-    ErrorHandler&  errHdl,
-    var::Token_itr loc)
+    ErrorWrapper  err_hdl)
 {
-  return push(id, errHdl, loc);
-}
-
-bool env::push(
-    std::string_view id,
-    ErrorHandler&  errHdl,
-    var::Token_itr loc)
-{
-  if (!push_impl(id, var::NilState{})) {
-    detail::errReDeclVar(errHdl, id, loc);
+  if (!push_impl(id, NilValue{})) {
+    detail::errReDeclVar(err_hdl, id);
     return false;
   }
   return true;
 }
 
 lox::var::Var_t& lox::VarEnv::errUnDeclVar(
-    lox::ErrorHandler&  errHdl,
-    var::Token_itr      loc,
+    lox::ErrorWrapper   err_hdl,
     std::string_view    arg)
 {
-  errHdl.recordErrMsg(
+  err_hdl.recordErrMsg(
       [&arg](auto& msg) {
         msg += "variable ";
         msg += arg;
         msg += " was not declared in this scope";
-      },
-      loc
+      }
   );
   return m_err;
 }
 
 lox::var::Var_t const& lox::VarEnv::errUnDeclVar(
-    lox::ErrorHandler&  errHdl,
-    var::Token_itr      loc,
+    lox::ErrorWrapper   err_hdl,
     std::string_view    arg) const
 {
-  errHdl.recordErrMsg(
+  err_hdl.recordErrMsg(
       [&arg](auto& msg) {
         msg += "variable ";
         msg += arg;
         msg += " was not declared in this scope";
-      },
-      loc
+      }
   );
   return m_err;
 }

@@ -21,7 +21,7 @@ int main(int argc, char** argv)
                  " source code due to above errors" << std::endl;
     return 0;
   }
-
+/*
   lox::Parser m_parser{m_errorhdl};
   auto psrStgErrExists = m_parser.gen_ast(m_scanner.get_tokens());
   if (psrStgErrExists) {
@@ -39,6 +39,6 @@ int main(int argc, char** argv)
                  " source code due to above runtime errors" << std::endl;
     return 0;
   }
-
+*/
   return 0;
 }
